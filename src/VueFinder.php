@@ -34,24 +34,31 @@ class VueFinder
      */
     public function __construct(array $storages)
     {
-
         $this->storageAdapters = $storages;
-
+    
         $this->request = Request::createFromGlobals();
-
-        $this->adapterKey = $this->request->get('adapter');
-
-        if (!$this->adapterKey || !in_array($this->adapterKey, array_keys($storages)) ) {
-            $this->adapterKey = array_keys($storages)[0];
+    
+        if (empty($storages)) {
+            throw new Exception('No storages configured. Please provide at least one storage adapter.');
         }
-
+    
+        $this->adapterKey = $this->request->get('adapter');
+    
+        // If the adapter key is null or invalid, use the first available storage key
+        if (is_null($this->adapterKey) || !array_key_exists($this->adapterKey, $storages)) {
+            $this->adapterKey = array_key_first($storages); // Use the first available key
+        }
+    
+        if ($this->adapterKey === null) {
+            throw new Exception('No valid adapter key could be determined.');
+        }
+    
         $this->storages = array_keys($storages);
-
+    
         $storages = array_map(static fn($adapter) => new Filesystem($adapter), $storages);
-
+    
         $this->manager = new MountManager($storages);
     }
-
     /**
      * @param $files
      * @return array
